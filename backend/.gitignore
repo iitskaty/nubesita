@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (credenciales, IPs, etc.)
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Build de React (si el front vive en el mismo repo)
+build/
+dist/
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
