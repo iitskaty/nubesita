@@ -1,0 +1,26 @@
+[
+  {
+    "correo": "alumno1@ejemplo.cl",
+    "nombre": "María Pérez",
+    "notas": [5.5, 6.2, 4.8, 6.0],
+    "promedio": 5.6,
+    "estado": "Aprobado",
+    "fechaRegistro": { "$date": "2026-07-10T12:00:00Z" }
+  },
+  {
+    "correo": "alumno2@ejemplo.cl",
+    "nombre": "Juan Soto",
+    "notas": [3.2, 4.1, 2.8],
+    "promedio": 3.4,
+    "estado": "Reprobado",
+    "fechaRegistro": { "$date": "2026-07-10T12:05:00Z" }
+  },
+  {
+    "correo": "operaciones@ayca.cl",
+    "nombre": "Benjamín Martínez",
+    "notas": [6.5, 7.0, 5.9, 6.8],
+    "promedio": 6.6,
+    "estado": "Aprobado",
+    "fechaRegistro": { "$date": "2026-07-10T12:10:00Z" }
+  }
+]
