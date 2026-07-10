@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 
+const { conectarMongo } = require('./mongo');
 const calculadoraRoutes = require('./routes/calculadora');
 const notasRoutes = require('./routes/notas');
 
@@ -18,6 +19,8 @@ app.get('/', (req, res) => {
 app.use('/api/calculadora', calculadoraRoutes);
 app.use('/api/notas', notasRoutes);
 
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
+conectarMongo().then(() => {
+  app.listen(PORT, () => {
+    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  });
 });
