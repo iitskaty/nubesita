@@ -45,7 +45,7 @@ router.post('/', async (req, res) => {
             promedio,
             estado,
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+          { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true, runValidators: true }
         );
         guardado = true;
       } catch (dbErr) {
