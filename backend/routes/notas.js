@@ -1,65 +1,71 @@
 const express = require('express');
 const router = express.Router();
+
 const Alumno = require('../models/Alumno');
 const { mongoDisponible } = require('../mongo');
 
-// POST /api/notas { correo, notas: [n1, n2, ...] }
+const NOTA_MINIMA_APROBACION = 4.0;
+
 router.post('/', async (req, res) => {
-  const { correo, notas } = req.body;
-
-  if (typeof correo !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
-    return res.status(400).json({ error: 'Debes ingresar un correo válido' });
-  }
-
-  if (!Array.isArray(notas) || notas.length === 0) {
-    return res.status(400).json({ error: 'Debes ingresar al menos una nota' });
-  }
-
-  const valores = notas.map(Number);
-  if (valores.some((n) => Number.isNaN(n) || n < 1 || n > 7)) {
-    return res.status(400).json({ error: 'Todas las notas deben ser numéricas y estar entre 1.0 y 7.0' });
-  }
-
-  const promedio = valores.reduce((acc, n) => acc + n, 0) / valores.length;
-  const promedioRedondeado = Math.round(promedio * 10) / 10;
-  const estado = promedioRedondeado >= 4.0 ? 'Aprobado' : 'Reprobado';
-
-  let guardado = false;
-  if (mongoDisponible()) {
-    try {
-      await Alumno.findOneAndUpdate(
-        { correo: correo.toLowerCase().trim() },
-        { notas: valores, promedio: promedioRedondeado, estado, fechaRegistro: new Date() },
-        { upsert: true, runValidators: true }
-      );
-      guardado = true;
-    } catch (err) {
-      console.error('Error guardando en MongoDB:', err.message);
-    }
-  }
-
-  res.json({
-    correo,
-    cantidad: valores.length,
-    promedio: promedioRedondeado,
-    estado,
-    guardado,
-  });
-});
-
-// GET /api/notas/:correo — recupera las notas guardadas de un alumno
-router.get('/:correo', async (req, res) => {
-  if (!mongoDisponible()) {
-    return res.status(503).json({ error: 'Base de datos no disponible' });
-  }
   try {
-    const alumno = await Alumno.findOne({ correo: req.params.correo.toLowerCase().trim() }).lean();
-    if (!alumno) {
-      return res.status(404).json({ error: 'No hay notas guardadas para ese correo' });
+    const { correo, notas, nombre } = req.body;
+
+    // --- Validaciones básicas ---
+    if (!correo || typeof correo !== 'string') {
+      return res.status(400).json({ error: 'El correo es obligatorio' });
     }
-    res.json(alumno);
+
+    if (!Array.isArray(notas) || notas.length === 0) {
+      return res.status(400).json({ error: 'Debes enviar al menos una nota' });
+    }
+
+    const notasNumericas = notas.map(Number);
+    const notaInvalida = notasNumericas.find(
+      (n) => Number.isNaN(n) || n < 1 || n > 7
+    );
+    if (notaInvalida !== undefined) {
+      return res.status(400).json({ error: 'Las notas deben estar entre 1.0 y 7.0' });
+    }
+
+    // --- Cálculo del promedio y estado ---
+    const suma = notasNumericas.reduce((acc, n) => acc + n, 0);
+    const promedio = Number((suma / notasNumericas.length).toFixed(2));
+    const estado = promedio >= NOTA_MINIMA_APROBACION ? 'Aprobado' : 'Reprobado';
+
+    // --- Intentar guardar en MongoDB (si está disponible) ---
+    let guardado = false;
+    if (mongoDisponible()) {
+      try {
+        await Alumno.findOneAndUpdate(
+          { correo: correo.toLowerCase().trim() },
+          {
+            correo,
+            nombre,
+            notas: notasNumericas,
+            promedio,
+            estado,
+          },
+          { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
+        );
+        guardado = true;
+      } catch (dbErr) {
+        console.error('Error guardando alumno en Mongo:', dbErr.message);
+        // No cortamos la respuesta: igual devolvemos el cálculo al frontend
+      }
+    } else {
+      console.warn('Mongo no disponible: el cálculo no se guardará');
+    }
+
+    return res.json({
+      correo,
+      cantidad: notasNumericas.length,
+      promedio,
+      estado,
+      guardado,
+    });
   } catch (err) {
-    res.status(500).json({ error: 'Error consultando la base de datos' });
+    console.error('Error en /api/notas:', err.message);
+    return res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
