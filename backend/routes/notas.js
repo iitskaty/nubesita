@@ -3,6 +3,7 @@ const router = express.Router();
 
 const Alumno = require('../models/Alumno');
 const { mongoDisponible } = require('../mongo');
+const { enviarCorreoNotas } = require('../mailer');
 
 const NOTA_MINIMA_APROBACION = 4.0;
 
@@ -56,12 +57,28 @@ router.post('/', async (req, res) => {
       console.warn('Mongo no disponible: el cálculo no se guardará');
     }
 
+    // --- Enviar correo con el resumen de notas ---
+    let correoEnviado = false;
+    try {
+      correoEnviado = await enviarCorreoNotas({
+        correo: correo.toLowerCase().trim(),
+        nombre,
+        notas: notasNumericas,
+        promedio,
+        estado,
+      });
+    } catch (mailErr) {
+      console.error('Error enviando correo:', mailErr.message);
+      // No cortamos la respuesta: igual devolvemos el cálculo al frontend
+    }
+
     return res.json({
       correo,
       cantidad: notasNumericas.length,
       promedio,
       estado,
       guardado,
+      correoEnviado,
     });
   } catch (err) {
     console.error('Error en /api/notas:', err.message);
